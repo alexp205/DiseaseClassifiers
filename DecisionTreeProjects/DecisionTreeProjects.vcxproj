@@ -111,6 +111,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DecisionForest.cpp" />
+    <ClCompile Include="DecisionTree.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DecisionForest.h" />
+    <ClInclude Include="DecisionTree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
