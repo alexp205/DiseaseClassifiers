@@ -1,17 +1,26 @@
 # DiseaseClassifiers
-A small collection of classification decision tree-based projects designed for practice and exploration of machine learning.
+A small collection of classification and regression decision tree and random forest-based projects designed for practice and exploration of machine learning.
 
-The over-arching project is split into three general concepts:
-1. Discrete Classifiers - a decision tree is trained on a list of symptoms and must choose between two potential diseases
-2. Discrete Multiclass Classifiers - similar to 1. but now a greater list of potential diseases is available and possible
-3. Continuous Classifiers - a list of symptoms (and necessary values) is provided and the decision tree must decide the likelihood of a certain disease
+The over-arching project is split into a few general components:
+1. Decision Tree Classifiers - a decision tree is trained on heart disease data and must predict the "likelihood" of heart disease in the patient
+2. Decision Tree Regression - similar to 1, but now a different, continuous value is being predicted
+3. Random Forest Classifiers - a look into how random forests work in general as well as in relation to decision trees, this specific application focuses on classification
+4. Random Forest Regression - similar to 3, but with regard to regression
 
-## Sub-project Descriptions:
-### Discrete Classifiers
+## Data Information
+The dataset was pulled from the UCI Machine Learning Repository (http://archive.ics.uci.edu/ml/index.php). Specifically, the heart disease dataset (http://archive.ics.uci.edu/ml/datasets/Heart+Disease) was used due to the amount of available data, the variety of data types, and its applicability.
 
+The specific details for each project are as follows:
+1. ...
 
-### Discrete Multiclass Classifiers
+2. ...
 
+3. ...
 
-### Continuous Classifiers
+4. ...
 
+## Structure Notes
+A few notes on the chosen structure:
+ - the splitting algorithm used at nodes calculates entropy and maximum information gain
+
+## USAGE:
