@@ -21,12 +21,18 @@
     <ClCompile Include="DecisionForest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tester.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DecisionTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DecisionForest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tester.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
