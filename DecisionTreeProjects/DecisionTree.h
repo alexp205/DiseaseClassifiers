@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <tuple>
 #include <iostream>
+#include <iomanip>
+#include <fstream>
 
 using namespace std;
 
@@ -19,7 +21,7 @@ struct node
 {
 	bool is_leaf;
 	double label; // if leaf node, contains label, else...
-	int split_label; // contains attribute split label
+	int split_var; // contains attribute split label
 	double split_val; // NOTE: only used in discrete data trees
 	double threshold; // NOTE: only used in continous data trees
 	int frequency = 1;
@@ -28,8 +30,7 @@ struct node
 
 class decisionTree
 {
-	vvd parent_data_info; // list (in order of input format) of all variables and possible values
-	vvd data_info; // same as above but mutable
+	vvd data_info; // list (in order of input format) of all variables and possible values
 	map<double,int> labels;
 	node* root_node;
 	int min_data_size;
@@ -40,23 +41,28 @@ class decisionTree
 
 	vvd getDatasetInfo(vvd&);
 	map<double,int> getLabelInfo(vvd&);
-	node* buildTree(vvd&, node*);
-	bool checkLeaf(vvd&);
-	tuple<int, double> bestSplitVar(vvd&);
+	node* buildTree(vvd&, vector<int>, node*);
+	tuple<bool,double> checkLeaf(vvd&);
+	tuple<int,double> bestSplitVar(vvd&);
 	double calculateEntropy(vvd&, int, double);
 	double calculateInfoGain(vvd&, int, double, double);
 	vd getThresholds(vvd&, int);
 	vvd subsetDiscreteData(vvd&, int, double);
 	vector<vvd> subsetContinuousData(vvd&, int, double);
 	//node* pruneTree();
-	double getCutoffLeafLabel(vvd&);
+	double getCutoffLeafLabel();
 	vvd getForestNodeData(vvd&, int);
-	double predict(vd, node*);
+	double predict(vd&, node*);
+	void printTree(node*);
+	double processStats(vd&, vd&, wstring);
 
 public:
 	decisionTree(vvd&, int, bool, bool, bool);
 	~decisionTree();
-	double predict(vd);
+	double predict(vd&);
+	vd predict(vvd&);
+	void print();
+	double getStatsInfo(vd&, vd&, wstring);
 };
 
 #endif
