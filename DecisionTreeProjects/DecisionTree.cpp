@@ -12,7 +12,7 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	min_data_size = data_cutoff;
 
 	vector<int> original_indices;
-	for (int y = 0; y < train_dataset[0].size() - 1; y++) {
+	for (size_t y = 0; y < train_dataset[0].size() - 1; y++) {
 		original_indices.push_back(y);
 	}
 	node* root = new node;
@@ -377,7 +377,7 @@ vvd decisionTree::getForestNodeData(vvd& input_data, int size)
 	vvd random_data;
 	vector<int> used_nums;
 
-	while (random_data.size() < (size_t)size) {
+	while (random_data.size() < (size_t) size) {
 		int rand_idx = rand() % input_data.size();
 		if (find(used_nums.begin(), used_nums.end(), rand_idx) == used_nums.end()) {
 			random_data.push_back(input_data[rand_idx]);
@@ -430,7 +430,7 @@ void decisionTree::printTree(node* node_ref)
 			wcout << L"Threshold: " << node_ref->threshold << endl;
 		}
 		wcout << L"Subtree Size: " << node_ref->frequency;
-		for (int x = 0; x < node_ref->children.size(); x++) {
+		for (size_t x = 0; x < node_ref->children.size(); x++) {
 			wcout << L" ---> ";
 			printTree(node_ref->children[x]);
 		}
@@ -447,7 +447,7 @@ double decisionTree::processStats(vd& test_labels, vd& test_predictions, wstring
 
 	output_file << setw(2) << "#" << setw(10) << "True Label" << setw(30) << right << "Predicted Label\n";
 	output_file << "----------------------------------------------------------------" << endl;
-	for (int x = 0; x < test_labels.size(); x++) {
+	for (size_t x = 0; x < test_labels.size(); x++) {
 		output_file << setw(2) << x + 1 << setw(10) << test_labels[x];
 		if (test_labels[x] == test_predictions[x]) {
 			correct++;
@@ -482,7 +482,7 @@ vd decisionTree::predict(vvd& dataset)
 {
 	vd predicted_labels;
 
-	for (int x = 0; x < dataset.size(); x++) {
+	for (size_t x = 0; x < dataset.size(); x++) {
 		predicted_labels.push_back(predict(dataset[x]));
 	}
 

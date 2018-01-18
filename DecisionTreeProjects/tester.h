@@ -4,6 +4,9 @@
 #define TREES_AND_FORESTS_TESTER_H_
 
 #include "DecisionTree.h"
-#include "DecisionForest.h"
+#include "RandomForest.h"
+
+tuple<vvd, vvd> parseData(string, string);
+vd parseDataLine(string);
 
 #endif

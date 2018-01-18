@@ -111,12 +111,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DecisionForest.cpp" />
+    <ClCompile Include="RandomForest.cpp" />
     <ClCompile Include="DecisionTree.cpp" />
     <ClCompile Include="tester.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DecisionForest.h" />
+    <ClInclude Include="RandomForest.h" />
     <ClInclude Include="DecisionTree.h" />
     <ClInclude Include="tester.h" />
   </ItemGroup>

@@ -24,7 +24,7 @@ vvd randomForest::getBootstrapSample(vvd& input_data, int size)
 {
 	vvd bootstrap_data;
 
-	while (bootstrap_data.size() < size) {
+	while (bootstrap_data.size() < (size_t) size) {
 		int rand_idx = rand() % input_data.size();
 		bootstrap_data.push_back(input_data[rand_idx]);
 	}
@@ -46,7 +46,7 @@ double randomForest::processStats(vd& test_labels, vd& test_predictions, wstring
 
 	output_file << setw(2) << "#" << setw(10) << "True Label" << setw(30) << right << "Predicted Label\n";
 	output_file << "----------------------------------------------------------------" << endl;
-	for (int x = 0; x < test_labels.size(); x++) {
+	for (size_t x = 0; x < test_labels.size(); x++) {
 		output_file << setw(2) << x + 1 << setw(10) << test_labels[x];
 		if (test_labels[x] == test_predictions[x]) {
 			correct++;
@@ -71,7 +71,7 @@ double randomForest::predict(vd& data)
 	double label;
 	map<double,int> predictions;
 	
-	for (int x = 0; x < forest.size(); x++) {
+	for (size_t x = 0; x < forest.size(); x++) {
 		double prediction = forest[x].predict(data);
 		if (predictions.count(prediction) == 0) {
 			predictions[prediction] = 1;
@@ -94,7 +94,7 @@ vd randomForest::predict(vvd& dataset)
 {
 	vd predicted_labels;
 
-	for (int x = 0; x < dataset.size(); x++) {
+	for (size_t x = 0; x < dataset.size(); x++) {
 		predicted_labels.push_back(predict(dataset[x]));
 	}
 

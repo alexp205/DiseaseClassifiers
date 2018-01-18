@@ -18,10 +18,10 @@
     <ClCompile Include="DecisionTree.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DecisionForest.cpp">
+    <ClCompile Include="tester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tester.cpp">
+    <ClCompile Include="RandomForest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,10 +29,10 @@
     <ClInclude Include="DecisionTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DecisionForest.h">
+    <ClInclude Include="tester.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tester.h">
+    <ClInclude Include="RandomForest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
