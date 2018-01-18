@@ -53,12 +53,16 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 	//   - discrete - split on all possible values for that variable
 	//   - continuous - find the best threshold for that variable and make a 
 	//                  binary split
+	// also, if the tree is part of a forest, split on a random subset of 
+	// the data for 
 	vvd split_data;
 	if (is_in_forest) {
 		int num_data = (int) sqrt(input_data.size());
 		split_data = getForestNodeData(input_data, num_data);
+		data_info = getDatasetInfo(split_data);
+		labels = getLabelInfo(split_data);
 	} else {
-		if (input_data.size() < (size_t)min_data_size) {
+		if (input_data.size() < (size_t) min_data_size) {
 			node_ref->is_leaf = true;
 			node_ref->label = getCutoffLeafLabel();
 			return node_ref;
