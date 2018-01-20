@@ -19,11 +19,11 @@ typedef vector<vd> vvd;
 
 struct node
 {
-	bool is_leaf;
+	bool is_leaf = false;
 	double label; // if leaf node, contains label, else...
 	int split_var; // contains attribute split label
-	double split_val; // NOTE: only used in discrete data trees
-	double threshold; // NOTE: only used in continous data trees
+	double split_val = -1; // NOTE: only used in discrete data trees
+	double threshold = -1; // NOTE: only used in continous data trees
 	int frequency = 1;
 	vector<node*> children;
 };

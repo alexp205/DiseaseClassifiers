@@ -1,0 +1,7 @@
+ #True Label              Predicted Label
+----------------------------------------------------------------
+ 1         2  ********  0
+ 2         0            0
+----------------------------------------------------------------
+Size of the test dataset: 2
+Number of correctly predicted labels: 1

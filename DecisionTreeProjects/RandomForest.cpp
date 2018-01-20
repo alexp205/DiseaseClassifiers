@@ -24,9 +24,13 @@ vvd randomForest::getBootstrapSample(vvd& input_data, int size)
 {
 	vvd bootstrap_data;
 
-	while (bootstrap_data.size() < (size_t) size) {
-		int rand_idx = rand() % input_data.size();
-		bootstrap_data.push_back(input_data[rand_idx]);
+	if (input_data.size() < (size_t) size) {
+		bootstrap_data = input_data;
+	} else {
+		while (bootstrap_data.size() < (size_t) size) {
+			int rand_idx = rand() % input_data.size();
+			bootstrap_data.push_back(input_data[rand_idx]);
+		}
 	}
 
 	return bootstrap_data;
@@ -62,7 +66,7 @@ double randomForest::processStats(vd& test_labels, vd& test_predictions, wstring
 	output_file << "Size of the test dataset: " << test_labels.size() << "\n";
 	output_file << "Number of correctly predicted labels: " << correct << endl;
 	output_file.close();
-	return correct / test_labels.size();
+	return (double) correct / test_labels.size();
 }
 
 // Public Functions
@@ -105,7 +109,7 @@ void randomForest::print(int sample_size)
 {
 	wcout << L"Taking Sample of Size " << sample_size << " from the Forest:\n";
 	wcout << L"----------------------------------------------------------------" << endl;
-	int step_size = (int) floor(forest.size() / sample_size);
+	int step_size = (int) floor(forest.size() / (double) sample_size);
 	for (int x = 0; x < sample_size; x += step_size) {
 		wcout << L"Random Forest: Tree " << x << "\n";
 		printForestSample(x);

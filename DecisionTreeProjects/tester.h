@@ -6,6 +6,7 @@
 #include "DecisionTree.h"
 #include "RandomForest.h"
 
+bool getBoolArg(char*);
 tuple<vvd, vvd> parseData(string, string);
 vd parseDataLine(string);
 

@@ -10,6 +10,8 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	is_classification = classification;
 	is_in_forest = forest;
 	min_data_size = data_cutoff;
+	data_info = getDatasetInfo(train_dataset);
+	labels = getLabelInfo(train_dataset);
 
 	vector<int> original_indices;
 	for (size_t y = 0; y < train_dataset[0].size() - 1; y++) {
@@ -38,7 +40,9 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 		wcout << L"ERROR: empty data detected, please check for errors" << endl;
 		return NULL;
 	}
-
+	
+	vvd temp_data_info = data_info;
+	map<double,int> temp_labels = labels;
 	data_info = getDatasetInfo(input_data);
 	labels = getLabelInfo(input_data);
 	// check if the tree is at a leaf
@@ -87,6 +91,8 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 			vector<int> subset_indices = indices;
 			subset_indices.erase(subset_indices.begin() + split_var);
 			node_ref->children.push_back(buildTree(data_subset, subset_indices, child));
+			data_info = temp_data_info;
+			labels = temp_labels;
 		}
 		return node_ref;
 	} else {
@@ -109,7 +115,11 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 		left_child->frequency = data_subsets[0].size();
 		right_child->frequency = data_subsets[1].size();
 		node_ref->children.push_back(buildTree(data_subsets[0], indices, left_child));
+		data_info = temp_data_info;
+		labels = temp_labels;
 		node_ref->children.push_back(buildTree(data_subsets[1], indices, right_child));
+		data_info = temp_data_info;
+		labels = temp_labels;
 		return node_ref;
 	}
 }
@@ -157,23 +167,17 @@ tuple<bool,double> decisionTree::checkLeaf(vvd& input_data)
 {
 	if (input_data.size() == 1) return make_tuple(true, input_data[0][input_data[0].size() - 1]);
 
-	double sample_label = input_data[0][input_data[0].size() - 1];
-	for (size_t x = 1; x < input_data.size(); x++) {
-		double test_label = input_data[x][input_data[x].size() - 1];
-		if (test_label != sample_label) return make_tuple(false, -1);
-	}
-
-	for (size_t y = 0; y < input_data[0].size() - 1; y++) {
-		double sample_var_val = input_data[0][y];
-		for (size_t x = 1; x < input_data.size(); x++) {
-			double test_var_val = input_data[x][y];
-			if (test_var_val != sample_var_val) return make_tuple(false, -1);
-		}
-	}
-
 	if (labels.size() == 1) {
 		return make_tuple(true, input_data[0][input_data[0].size() - 1]);
 	} else {
+		for (size_t y = 0; y < input_data[0].size() - 1; y++) {
+			double sample_var_val = input_data[0][y];
+			for (size_t x = 1; x < input_data.size(); x++) {
+				double test_var_val = input_data[x][y];
+				if (test_var_val != sample_var_val) return make_tuple(false, -1);
+			}
+		}
+
 		return make_tuple(true, getCutoffLeafLabel());
 	}
 }
@@ -189,7 +193,10 @@ tuple<int,double> decisionTree::bestSplitVar(vvd& input_data)
 	if (is_discrete) {
 		for (size_t y = 0; y < input_data[0].size() - 1; y++) {
 			double var_info_gain = calculateInfoGain(input_data, y, -1, label_entropy);
-			if (var_info_gain > max_info_gain) best_split_var = y;
+			if (var_info_gain > max_info_gain) {
+				best_split_var = y;
+				max_info_gain = var_info_gain;
+			}
 		}
 	} else {
 		for (size_t y = 0; y < input_data[0].size() - 1; y++) {
@@ -199,6 +206,7 @@ tuple<int,double> decisionTree::bestSplitVar(vvd& input_data)
 				if (var_info_gain > max_info_gain) {
 					best_split_var = y;
 					best_threshold = thresholds[x];
+					max_info_gain = var_info_gain;
 				}
 			}
 		}
@@ -211,10 +219,13 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 {
 	double entropy = 0;
 
-	if (idx = input_data[0].size() - 1) {
+	if (idx == input_data[0].size() - 1) {
 		for (map<double,int>::iterator itr = labels.begin(); itr != labels.end(); ++itr) {
-			double prob = itr->second / input_data.size();
-			double label_entropy = -prob * log2(prob);
+			double prob = (double) itr->second / input_data.size();
+			double label_entropy = 0;
+			if (prob != 0) {
+				label_entropy = -prob * log2(prob);
+			}
 			entropy += label_entropy;
 		}
 	} else {
@@ -232,13 +243,16 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 			// H(Y|X)
 			for (size_t y = 0; y < data_info[idx].size(); y++) {
 				// P(X = x_j)
-				double var_prob = var_val_counts[y] / data_info.size();
+				double var_prob = (double) var_val_counts[y] / input_data.size();
 				// calculating conditional entropy
 				double cond_entropy = 0;
 				for (size_t lbl = 0; lbl < var_label_counts[y].size(); lbl++) {
 					// P(Y = y_i | X = x_j)
-					double lable_prob = var_label_counts[y][lbl] / var_val_counts[y];
-					double lable_entropy = -lable_prob * log2(lable_prob);
+					double lable_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
+					double lable_entropy = 0;
+					if (lable_prob != 0) {
+						lable_entropy = lable_prob * log2(lable_prob);
+					}
 					cond_entropy += lable_entropy;
 				}
 				double var_entropy = -var_prob * cond_entropy;
@@ -263,13 +277,16 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 			// H(Y|X)
 			for (int y = 0; y < 2; y++) {
 				// P(X = x_j)
-				double var_prob = var_val_counts[y] / data_info.size();
+				double var_prob = (double) var_val_counts[y] / data_info.size();
 				// calculating conditional entropy
 				double cond_entropy = 0;
 				for (size_t lbl = 0; lbl < var_label_counts[y].size(); lbl++) {
 					// P(Y = y_i | X = x_j)
-					double lable_prob = var_label_counts[y][lbl] / var_val_counts[y];
-					double lable_entropy = -lable_prob * log2(lable_prob);
+					double lable_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
+					double lable_entropy = 0;
+					if (lable_prob != 0) {
+						lable_entropy = lable_prob * log2(lable_prob);
+					}
 					cond_entropy += lable_entropy;
 				}
 				double var_entropy = -var_prob * cond_entropy;
@@ -299,7 +316,7 @@ vd decisionTree::getThresholds(vvd& input_data, int idx)
 	for (size_t x = 1; x < input_data.size(); x++) {
 		double next_candidate = input_data[x][input_data.size() - 1];
 		if (next_candidate != split) {
-			double threshold = (input_data[x][idx] + input_data[x - 1][idx]) / 2;
+			double threshold = (input_data[x][idx] + input_data[x - 1][idx]) / (double) 2;
 			thresholds.push_back(threshold);
 			split = next_candidate;
 		}
@@ -433,7 +450,7 @@ void decisionTree::printTree(node* node_ref)
 		else {
 			wcout << L"Threshold: " << node_ref->threshold << endl;
 		}
-		wcout << L"Subtree Size: " << node_ref->frequency;
+		wcout << L"Subtree Size: " << node_ref->frequency << endl;
 		for (size_t x = 0; x < node_ref->children.size(); x++) {
 			wcout << L" ---> ";
 			printTree(node_ref->children[x]);
@@ -467,7 +484,7 @@ double decisionTree::processStats(vd& test_labels, vd& test_predictions, wstring
 	output_file << "Size of the test dataset: " << test_labels.size() << "\n";
 	output_file << "Number of correctly predicted labels: " << correct << endl;
 	output_file.close();
-	return correct / test_labels.size();
+	return (double) correct / test_labels.size();
 }
 
 // Public Functions
@@ -498,7 +515,6 @@ void decisionTree::print()
 	wcout << L"Tree Structure:\n";
 	wcout << L"----------------------------------------------------------------\n";
 	printTree(root_node);
-	wcout << endl;
 }
 
 double decisionTree::getStatsInfo(vd& test_labels, vd& test_predictions, wstring filename)
