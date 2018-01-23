@@ -17,7 +17,8 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	for (size_t y = 0; y < train_dataset[0].size() - 1; y++) {
 		original_indices.push_back(y);
 	}
-	node* root = new node;
+	node root;
+	root.frequency = train_dataset.size();
 	root_node = buildTree(train_dataset, original_indices, root);
 	/*
 	if (!is_in_forest) {
@@ -26,30 +27,60 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	*/
 }
 
+/*
+// Copy Constructor
+decisionTree::decisionTree(const decisionTree& copy)
+{
+	data_info = copy.data_info;
+	labels = copy.labels;
+	root_node = copy.root_node;
+	min_data_size = copy.min_data_size;
+	is_discrete = copy.is_discrete;
+	is_classification = copy.is_classification;
+	is_in_forest = copy.is_in_forest;
+}
+
+// Copy Assignment Operator
+decisionTree& decisionTree::operator=(const decisionTree& copy)
+{
+	data_info = copy.data_info;
+	labels = copy.labels;
+	root_node = copy.root_node;
+	min_data_size = copy.min_data_size;
+	is_discrete = copy.is_discrete;
+	is_classification = copy.is_classification;
+	is_in_forest = copy.is_in_forest;
+
+	return *this;
+}
+
 // Destructor
 decisionTree::~decisionTree()
 {
 	delete root_node;
 }
+*/
 
 // Private (Internal) Functions
-node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_ref)
+node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref)
 {
 	// if there is no input data, something went wrong
 	if (input_data.empty()) {
 		wcout << L"ERROR: empty data detected, please check for errors" << endl;
-		return NULL;
+		exit(-1);
 	}
 	
-	vvd temp_data_info = data_info;
-	map<double,int> temp_labels = labels;
+	vvd bkp_data_info = data_info;
+	map<double,int> bkp_labels = labels;
 	data_info = getDatasetInfo(input_data);
 	labels = getLabelInfo(input_data);
 	// check if the tree is at a leaf
 	auto is_leaf = checkLeaf(input_data);
 	if (get<0>(is_leaf)) {
-		node_ref->is_leaf = true;
-		node_ref->label = get<1>(is_leaf);
+		node_ref.is_leaf = true;
+		node_ref.label = get<1>(is_leaf);
+		data_info = bkp_data_info;
+		labels = bkp_labels;
 		return node_ref;
 	}
 	// choose how to split based on if the data is discrete or continuous
@@ -60,15 +91,22 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 	// also, if the tree is part of a forest, split on a random subset of 
 	// the data for 
 	vvd split_data;
+	vvd ref_data_info = data_info;
+	map<double,int> ref_labels = labels;
 	if (is_in_forest) {
-		int num_data = (int) sqrt(input_data.size());
+		int num_data = (int) ceil(sqrt(input_data.size()));
 		split_data = getForestNodeData(input_data, num_data);
+		// the following is necessary because of the references to data_info and 
+		// labels in bestSplitVar (and all reliant functions), this system can 
+		// almost certainly be improved and eventually maybe possibly will
 		data_info = getDatasetInfo(split_data);
 		labels = getLabelInfo(split_data);
 	} else {
 		if (input_data.size() < (size_t) min_data_size) {
-			node_ref->is_leaf = true;
-			node_ref->label = getCutoffLeafLabel();
+			node_ref.is_leaf = true;
+			node_ref.label = getCutoffLeafLabel();
+			data_info = bkp_data_info;
+			labels = bkp_labels;
 			return node_ref;
 		}
 		split_data = input_data;
@@ -78,22 +116,26 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 		int split_var = get<0>(split_info);
 		if (split_var == -1) {
 			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
-			return NULL;
+			exit(-1);
 		}
-		node_ref->split_var = indices[split_var];
+		if (is_in_forest) {
+			data_info = ref_data_info;
+			labels = ref_labels;
+		}
+		node_ref.split_var = indices[split_var];
 		for (size_t x = 0; x < data_info[split_var].size(); x++) {
-			node* child = new node;
-			child->split_var = indices[split_var];
-			child->split_val = data_info[split_var][x];
-			child->is_leaf = false;
+			node child;
+			child.split_var = indices[split_var];
+			child.split_val = data_info[split_var][x];
+			child.is_leaf = false;
 			vvd data_subset = subsetDiscreteData(input_data, split_var, data_info[split_var][x]);
-			child->frequency = data_subset.size();
+			child.frequency = data_subset.size();
 			vector<int> subset_indices = indices;
 			subset_indices.erase(subset_indices.begin() + split_var);
-			node_ref->children.push_back(buildTree(data_subset, subset_indices, child));
-			data_info = temp_data_info;
-			labels = temp_labels;
+			node_ref.children.push_back(buildTree(data_subset, subset_indices, child));
 		}
+		data_info = bkp_data_info;
+		labels = bkp_labels;
 		return node_ref;
 	} else {
 		auto split_info = bestSplitVar(split_data);
@@ -101,25 +143,27 @@ node* decisionTree::buildTree(vvd& input_data, vector<int> indices, node* node_r
 		double split_threshold = get<1>(split_info);
 		if (split_var == -1) {
 			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
-			return NULL;
+			exit(-1);
 		}
-		node_ref->split_var = indices[split_var];
-		node_ref->threshold = split_threshold;
-		node* left_child = new node;
-		left_child->split_var = indices[split_var];
-		left_child->is_leaf = false;
-		node* right_child = new node;
-		right_child->split_var = indices[split_var];
-		right_child->is_leaf = false;
+		if (is_in_forest) {
+			data_info = ref_data_info;
+			labels = ref_labels;
+		}
+		node_ref.split_var = indices[split_var];
+		node_ref.threshold = split_threshold;
+		node left_child;
+		left_child.split_var = indices[split_var];
+		left_child.is_leaf = false;
+		node right_child;
+		right_child.split_var = indices[split_var];
+		right_child.is_leaf = false;
 		vector<vvd> data_subsets = subsetContinuousData(input_data, split_var, split_threshold);
-		left_child->frequency = data_subsets[0].size();
-		right_child->frequency = data_subsets[1].size();
-		node_ref->children.push_back(buildTree(data_subsets[0], indices, left_child));
-		data_info = temp_data_info;
-		labels = temp_labels;
-		node_ref->children.push_back(buildTree(data_subsets[1], indices, right_child));
-		data_info = temp_data_info;
-		labels = temp_labels;
+		left_child.frequency = data_subsets[0].size();
+		right_child.frequency = data_subsets[1].size();
+		node_ref.children.push_back(buildTree(data_subsets[0], indices, left_child));
+		node_ref.children.push_back(buildTree(data_subsets[1], indices, right_child));
+		data_info = bkp_data_info;
+		labels = bkp_labels;
 		return node_ref;
 	}
 }
@@ -277,12 +321,15 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 			// H(Y|X)
 			for (int y = 0; y < 2; y++) {
 				// P(X = x_j)
-				double var_prob = (double) var_val_counts[y] / data_info.size();
+				double var_prob = (double) var_val_counts[y] / input_data.size();
 				// calculating conditional entropy
 				double cond_entropy = 0;
 				for (size_t lbl = 0; lbl < var_label_counts[y].size(); lbl++) {
 					// P(Y = y_i | X = x_j)
-					double lable_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
+					double lable_prob = 0;
+					if (var_val_counts[y] != 0) {
+						lable_prob = (double)var_label_counts[y][lbl] / var_val_counts[y];
+					}
 					double lable_entropy = 0;
 					if (lable_prob != 0) {
 						lable_entropy = lable_prob * log2(lable_prob);
@@ -312,14 +359,18 @@ vd decisionTree::getThresholds(vvd& input_data, int idx)
 {
 	vd thresholds;
 
-	double split = input_data[0][input_data.size() - 1];
+	double split = input_data[0][input_data[0].size() - 1];
 	for (size_t x = 1; x < input_data.size(); x++) {
-		double next_candidate = input_data[x][input_data.size() - 1];
+		double next_candidate = input_data[x][input_data[x].size() - 1];
 		if (next_candidate != split) {
 			double threshold = (input_data[x][idx] + input_data[x - 1][idx]) / (double) 2;
 			thresholds.push_back(threshold);
 			split = next_candidate;
 		}
+	}
+
+	if (thresholds.size() == 0) {
+		thresholds.push_back((input_data[1][idx] + input_data[0][idx]) / (double) 2);
 	}
 
 	return thresholds;
@@ -409,17 +460,17 @@ vvd decisionTree::getForestNodeData(vvd& input_data, int size)
 	return random_data;
 }
 
-double decisionTree::predict(vd& data, node* current_node)
+double decisionTree::predict(vd& data, node current_node)
 {
-	if (current_node->is_leaf) return current_node->label;
+	if (current_node.is_leaf) return current_node.label;
 	if (is_discrete) {
-		double data_val = data[current_node->split_var];
+		double data_val = data[current_node.split_var];
 		int child_idx;
 		int max_freq = -1;
-		for (size_t x = 0; x < current_node->children.size(); x++) {
-			double val = current_node->split_val;
-			if (val == data_val) return predict(data, current_node->children[x]);
-			int freq = current_node->children[x]->frequency;
+		for (size_t x = 0; x < current_node.children.size(); x++) {
+			double val = current_node.split_val;
+			if (val == data_val) return predict(data, current_node.children[x]);
+			int freq = current_node.children[x].frequency;
 			if (freq > max_freq) {
 				max_freq = freq;
 				child_idx = x;
@@ -427,36 +478,57 @@ double decisionTree::predict(vd& data, node* current_node)
 		}
 		// if the data contains a value never seen before, throw it into the node 
 		// with the highest frequency
-		return predict(data, current_node->children[child_idx]);
+		return predict(data, current_node.children[child_idx]);
 	}
 	else {
-		if (data[current_node->split_var] < current_node->threshold) return predict(data, current_node->children[0]);
-		return predict(data, current_node->children[1]);
+		if (data[current_node.split_var] < current_node.threshold) return predict(data, current_node.children[0]);
+		return predict(data, current_node.children[1]);
 	}
 }
 
-void decisionTree::printTree(node* node_ref)
+void decisionTree::printTree(node node_ref, int depth)
 {
-	if (node_ref == NULL) return;
-	if (node_ref->is_leaf) {
-		wcout << L"Predicted Label: " << node_ref->label << endl;
+	if (node_ref.is_leaf) {
+		printSpacing(depth, true);
+		wcout << L"Split Variable: " << node_ref.split_var << "\n";
+		printSpacing(depth, false);
+		wcout << L"Predicted Label: " << node_ref.label << endl;
 		return;
 	}
 	else {
-		wcout << L"Split Variable: " << node_ref->split_var << endl;
+		printSpacing(depth, true);
+		wcout << L"Split Variable: " << node_ref.split_var << "\n";
 		if (is_discrete) {
-			wcout << L"Split Value: " << node_ref->split_val << endl;
+			printSpacing(depth, false);
+			wcout << L"Split Value: " << node_ref.split_val << "\n";
 		}
 		else {
-			wcout << L"Threshold: " << node_ref->threshold << endl;
+			printSpacing(depth, false);
+			wcout << L"Threshold: " << node_ref.threshold << "\n";
 		}
-		wcout << L"Subtree Size: " << node_ref->frequency << endl;
-		for (size_t x = 0; x < node_ref->children.size(); x++) {
-			wcout << L" ---> ";
-			printTree(node_ref->children[x]);
+		printSpacing(depth, false);
+		wcout << L"Subtree Size: " << node_ref.frequency << "\n";
+		depth++;
+		for (size_t x = 0; x < node_ref.children.size(); x++) {
+			printTree(node_ref.children[x], depth);
 		}
 		wcout << endl;
 		return;
+	}
+}
+
+void decisionTree::printSpacing(int depth, bool is_top)
+{
+	if (depth > 0) {
+		for (int layer = 1; layer < depth; layer++) {
+			wcout << L"     ";
+		}
+		if (is_top) {
+			wcout << L"---> ";
+		}
+		else {
+			wcout << L"     ";
+		}
 	}
 }
 
@@ -514,12 +586,13 @@ void decisionTree::print()
 {
 	wcout << L"Tree Structure:\n";
 	wcout << L"----------------------------------------------------------------\n";
-	printTree(root_node);
+	printTree(root_node, 0);
 }
 
 double decisionTree::getStatsInfo(vd& test_labels, vd& test_predictions, wstring filename)
 {
 	wcout << L"Statistics:\n";
+	wcout << L"----------------------------------------------------------------\n";
 	double accuracy = processStats(test_labels, test_predictions, filename);
 	wcout << L"NOTE: testing results recorded at " << filename << "\n";
 	wcout << L"Model Accuracy on Test Data: " << accuracy << endl;

@@ -8,15 +8,9 @@ randomForest::randomForest(vvd& dataset, int forest_size, int bag_size, bool dis
 {
 	for (int x = 0; x < forest_size; x++) {
 		vvd bootstrap_data = getBootstrapSample(dataset, bag_size);
-		decisionTree forest_tree(bootstrap_data, -1, discrete, classification, true);
+		decisionTree forest_tree(bootstrap_data, (int)sqrt(dataset.size()), discrete, classification, true);
 		forest.push_back(forest_tree);
 	}
-}
-
-// Destructor
-randomForest::~randomForest()
-{
-
 }
 
 // Private (Internal) Functions

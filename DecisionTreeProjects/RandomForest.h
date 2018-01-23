@@ -13,10 +13,8 @@ class randomForest
 	void randomForest::printForestSample(int);
 	double processStats(vd&, vd&, wstring);
 
-
 public:
 	randomForest(vvd&, int, int, bool, bool);
-	~randomForest();
 	double predict(vd&);
 	vd predict(vvd&);
 	void print(int);
