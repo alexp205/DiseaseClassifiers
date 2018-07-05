@@ -2,7 +2,7 @@
 
 // Constructor
 /*
-
+* 
 */
 randomForest::randomForest(vvd& dataset, int forest_size, int bag_size, bool discrete, bool classification)
 {
@@ -60,10 +60,14 @@ double randomForest::processStats(vd& test_labels, vd& test_predictions, wstring
 	output_file << "Size of the test dataset: " << test_labels.size() << "\n";
 	output_file << "Number of correctly predicted labels: " << correct << endl;
 	output_file.close();
+
 	return (double) correct / test_labels.size();
 }
 
 // Public Functions
+/*
+* Returns: - [double] the predicted label for the input data
+*/
 double randomForest::predict(vd& data)
 {
 	double label;
@@ -88,6 +92,11 @@ double randomForest::predict(vd& data)
 	return label;
 }
 
+/*
+* Overloaded version of predict that can handle sets of data.
+*
+* Returns: - [vd] the list of predicted labels for each data point in the dataset
+*/
 vd randomForest::predict(vvd& dataset)
 {
 	vd predicted_labels;
@@ -116,7 +125,7 @@ double randomForest::getStatsInfo(vd& test_labels, vd& test_predictions, wstring
 	wcout << L"Statistics:\n";
 	double accuracy = processStats(test_labels, test_predictions, filename);
 	wcout << L"NOTE: testing results recorded at " << filename << "\n";
-	wcout << L"Model Accuracy on Test Data: " << accuracy << endl;
+	wcout << L"\nModel Accuracy on Test Data: " << accuracy << endl;
 
 	return accuracy;
 }

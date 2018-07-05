@@ -13,7 +13,7 @@ NOTE: Regression and error-based pruning have not yet been implemented. They wil
 The dataset was pulled from the UCI Machine Learning Repository (http://archive.ics.uci.edu/ml/index.php). Specifically, the heart disease dataset (http://archive.ics.uci.edu/ml/datasets/Heart+Disease) was used due to the amount of available data, the variety of data types, and its applicability.
 
 The specific details for each project are as follows:
-1. Decision Tree Classifiers
+* Decision Tree Classifiers
     * Data ordering for the discrete dataset (according to the UCI attribute documentation) (I think):
         1. #4 (sex)
         2. #9 (cp)
@@ -39,15 +39,13 @@ The specific details for each project are as follows:
         13. #51 (thal)
     * The predicted value was #58, that is the probability of heart disease presence in the patient.
 
-2. ...
-
-The random forests use the same data format as 1. and 2. respectively.
+The random forests use the same data format.
 
 ## Structure Notes
 A few notes on the chosen structure:
  - the splitting algorithm used at nodes calculates entropy and maximum information gain
  - decision tree anti-overfitting relies on cutting off expansion prematurely, specifically, the program takes the square root of the input data size as the minimun number of data points before that node is turned into a leaf by majority vote labeling
- - if the random forest size and bagging size are not specified, the defaults are (respectively) 1000 and the input data size divided by 3 (with a minimum of 3)
+ - if the random forest size and bagging size are not specified, the defaults are (respectively) 1000 and the input data size divided by 5 (with a minimum of 10)
  - the random sampling of data at the tree nodes in the random forest take data (without replacement) until the square root of the input data size (rounded up) is reached
 
 ## USAGE:

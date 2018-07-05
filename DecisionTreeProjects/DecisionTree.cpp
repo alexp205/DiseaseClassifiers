@@ -2,7 +2,31 @@
 
 // Constructor
 /*
-
+*  Constructor for a decision tree object.
+*
+*  There are a few key components/member "structures" to note:
+*    - data_info:
+*      Scans input data and notes the unique values in each column of input data.
+*      so, ---           ---
+*          | [ a b ... c ] | <--- column 1 unique values
+*          | [ d e ... f ] | <--- column 2 unique values
+*          | etc.          |
+*          .               .
+*          .               .
+*          .               .
+*          |               |
+*          ---           ---
+*
+*    - label_info:
+*      Dictionary structure that maps each unique label the occurs w/ the number of occurrences.
+*      so, ( [ x --- y ] ) <--- label 1
+*          ( [ w --- z ] ) <--- label 2
+*          ( etc.        )
+*          .             .
+*          .             .
+*          .             .
+*          (             )
+*
 */
 decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, bool classification, bool forest)
 {
@@ -27,40 +51,6 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	*/
 }
 
-/*
-// Copy Constructor
-decisionTree::decisionTree(const decisionTree& copy)
-{
-	data_info = copy.data_info;
-	labels = copy.labels;
-	root_node = copy.root_node;
-	min_data_size = copy.min_data_size;
-	is_discrete = copy.is_discrete;
-	is_classification = copy.is_classification;
-	is_in_forest = copy.is_in_forest;
-}
-
-// Copy Assignment Operator
-decisionTree& decisionTree::operator=(const decisionTree& copy)
-{
-	data_info = copy.data_info;
-	labels = copy.labels;
-	root_node = copy.root_node;
-	min_data_size = copy.min_data_size;
-	is_discrete = copy.is_discrete;
-	is_classification = copy.is_classification;
-	is_in_forest = copy.is_in_forest;
-
-	return *this;
-}
-
-// Destructor
-decisionTree::~decisionTree()
-{
-	delete root_node;
-}
-*/
-
 // Private (Internal) Functions
 node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref)
 {
@@ -83,13 +73,15 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		labels = bkp_labels;
 		return node_ref;
 	}
-	// choose how to split based on if the data is discrete or continuous
+
+	// choose how to split based on if the tree is part of a forest 
+    // OR if the data is discrete or continuous
 	// for reference:
 	//   - discrete - split on all possible values for that variable
 	//   - continuous - find the best threshold for that variable and make a 
 	//                  binary split
 	// also, if the tree is part of a forest, split on a random subset of 
-	// the data for 
+	// the data
 	vvd split_data;
 	vvd ref_data_info = data_info;
 	map<double,int> ref_labels = labels;
@@ -111,13 +103,17 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		}
 		split_data = input_data;
 	}
+
+    // TODO: debug this w/ forests, the returned split_var idx WILL NOT correspond to the correct input_data idx
+    
+    auto split_info = bestSplitVar(split_data);
+    int split_var = get<0>(split_info);
 	if (is_discrete) {
-		auto split_info = bestSplitVar(split_data);
-		int split_var = get<0>(split_info);
 		if (split_var == -1) {
 			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
 			exit(-1);
 		}
+        // restore data_info and labels if in forest
 		if (is_in_forest) {
 			data_info = ref_data_info;
 			labels = ref_labels;
@@ -138,13 +134,16 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		labels = bkp_labels;
 		return node_ref;
 	} else {
-		auto split_info = bestSplitVar(split_data);
-		int split_var = get<0>(split_info);
 		double split_threshold = get<1>(split_info);
 		if (split_var == -1) {
 			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
 			exit(-1);
 		}
+        if (split_threshold == -1) {
+            wcout << L"ERROR: no split threshold detected in continuous mode, please check for errors" << endl;
+            exit(-1);
+        }
+        // restore data_info and labels if in forest
 		if (is_in_forest) {
 			data_info = ref_data_info;
 			labels = ref_labels;
@@ -203,9 +202,9 @@ map<double,int> decisionTree::getLabelInfo(vvd& input_data)
 }
 
 /*
-This function checks two things in order to determine if the node is a leaf:
-  1. if all of the remaining data has the same label
-  2. if all of the remaining data has the same values for every variable
+* This function checks two things in order to determine if the node is a leaf:
+*  1. if all of the remaining data has the same label
+*  2. if all of the remaining data has the same values for every feature
 */
 tuple<bool,double> decisionTree::checkLeaf(vvd& input_data)
 {
@@ -259,6 +258,11 @@ tuple<int,double> decisionTree::bestSplitVar(vvd& input_data)
 	return make_tuple(best_split_var, best_threshold);
 }
 
+/*
+* NOTE: future improvements could include restructuring the procedure to use a general (i.e. base) 
+*       case entropy calculation function then have other calculations (e.g. conditional entropy) 
+*       call that base case function
+*/
 double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold)
 {
 	double entropy = 0;
@@ -274,6 +278,25 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 		}
 	} else {
 		if (is_discrete) {
+            // some helpful information regarding the variables var_val_counts and var_label_counts:
+            //   - var_val_counts:
+            //     Tracks the number of occurrences of every possible discrete value corresponding to 
+            //     the feature at idx. References data_info which, in turn, stores the relevant 
+            //     possible discrete values.
+            //
+            //   - var_label_counts:
+            //     Tracks the number of occurrences of each label per every possible discrete value 
+            //     corresponding to the feature at idx. So, for example, the feature at idx could 
+            //     have the following possible values with the following frequencies of labels:
+            //       - 0 -> label 1: 3
+            //           -> label 2: 0
+            //           -> label 3: 1
+            //       - 3 -> label 1: 1
+            //           -> label 2: 0
+            //           -> label 3: 0
+            //       - 4 -> label 1: 0
+            //           -> label 2: 0
+            //           -> label 3: 4
 			vector<int> var_val_counts(data_info[idx].size());
 			vector<vector<int>> var_label_counts(data_info[idx].size(), vector<int>(labels.size()));
 			for (size_t x = 0; x < input_data.size(); x++) {
@@ -292,17 +315,23 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 				double cond_entropy = 0;
 				for (size_t lbl = 0; lbl < var_label_counts[y].size(); lbl++) {
 					// P(Y = y_i | X = x_j)
-					double lable_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
-					double lable_entropy = 0;
-					if (lable_prob != 0) {
-						lable_entropy = lable_prob * log2(lable_prob);
+                    double label_prob = 0;
+                    if (var_val_counts[y] != 0) {
+                        label_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
+                    }
+					double label_entropy = 0;
+					if (label_prob != 0) {
+						label_entropy = label_prob * log2(label_prob);
 					}
-					cond_entropy += lable_entropy;
+					cond_entropy += label_entropy;
 				}
 				double var_entropy = -var_prob * cond_entropy;
 				entropy += var_entropy;
 			}
 		} else {
+            // the variables var_val_counts and var_label counts work similarly to the discrete 
+            // case except they only consider the variables greater than or equal to and less 
+            // than the given threshold
 			vector<int> var_val_counts(2);
 			vector<vector<int>> var_label_counts(2, vector<int>(labels.size()));
 			for (size_t x = 0; x < input_data.size(); x++) {
@@ -326,15 +355,15 @@ double decisionTree::calculateEntropy(vvd& input_data, int idx, double threshold
 				double cond_entropy = 0;
 				for (size_t lbl = 0; lbl < var_label_counts[y].size(); lbl++) {
 					// P(Y = y_i | X = x_j)
-					double lable_prob = 0;
+					double label_prob = 0;
 					if (var_val_counts[y] != 0) {
-						lable_prob = (double)var_label_counts[y][lbl] / var_val_counts[y];
+						label_prob = (double) var_label_counts[y][lbl] / var_val_counts[y];
 					}
-					double lable_entropy = 0;
-					if (lable_prob != 0) {
-						lable_entropy = lable_prob * log2(lable_prob);
+					double label_entropy = 0;
+					if (label_prob != 0) {
+						label_entropy = label_prob * log2(label_prob);
 					}
-					cond_entropy += lable_entropy;
+					cond_entropy += label_entropy;
 				}
 				double var_entropy = -var_prob * cond_entropy;
 				entropy += var_entropy;
@@ -359,9 +388,15 @@ vd decisionTree::getThresholds(vvd& input_data, int idx)
 {
 	vd thresholds;
 
-	double split = input_data[0][input_data[0].size() - 1];
-	for (size_t x = 1; x < input_data.size(); x++) {
-		double next_candidate = input_data[x][input_data[x].size() - 1];
+    vd candidates;
+    for (size_t i = 0; i < input_data.size(); i++) {
+        candidates.push_back(input_data[i][input_data[i].size() - 1]);
+    }
+    sort(candidates.begin(), candidates.end());
+
+    double split = candidates[0];
+    for (size_t x = 1; x < candidates.size(); x++) {
+		double next_candidate = candidates[x];
 		if (next_candidate != split) {
 			double threshold = (input_data[x][idx] + input_data[x - 1][idx]) / (double) 2;
 			thresholds.push_back(threshold);
@@ -414,12 +449,12 @@ vector<vvd> decisionTree::subsetContinuousData(vvd& input_data, int var, double 
 }
 
 /*
-Currently not implemented. Prospective improvement involves using misclassification 
-for the error while iterating over subtrees to detect the best accuracy improvements/ 
-error reductions.
-
-In place, if the tree is not part of a random forest, minimum dataset sizes are used 
-to limit the size of the tree.
+* Currently not implemented. Prospective improvement involves using misclassification 
+* for the error while iterating over subtrees to detect the best accuracy improvements/ 
+* error reductions.
+*
+* In place, if the tree is not part of a random forest, minimum dataset sizes are used 
+* to limit the size of the tree.
 */
 /*
 node* decisionTree::pruneTree()
@@ -468,7 +503,11 @@ double decisionTree::predict(vd& data, node current_node)
 		int child_idx;
 		int max_freq = -1;
 		for (size_t x = 0; x < current_node.children.size(); x++) {
-			double val = current_node.split_val;
+
+            // TODO: remove these comments
+            // NOTE: recently changed, should be correct but might not be
+
+			double val = current_node.children[x].split_val;
 			if (val == data_val) return predict(data, current_node.children[x]);
 			int freq = current_node.children[x].frequency;
 			if (freq > max_freq) {
@@ -494,8 +533,7 @@ void decisionTree::printTree(node node_ref, int depth)
 		printSpacing(depth, false);
 		wcout << L"Predicted Label: " << node_ref.label << endl;
 		return;
-	}
-	else {
+	} else {
 		printSpacing(depth, true);
 		wcout << L"Split Variable: " << node_ref.split_var << "\n";
 		if (is_discrete) {
@@ -512,7 +550,6 @@ void decisionTree::printTree(node node_ref, int depth)
 		for (size_t x = 0; x < node_ref.children.size(); x++) {
 			printTree(node_ref.children[x], depth);
 		}
-		wcout << endl;
 		return;
 	}
 }
@@ -556,12 +593,13 @@ double decisionTree::processStats(vd& test_labels, vd& test_predictions, wstring
 	output_file << "Size of the test dataset: " << test_labels.size() << "\n";
 	output_file << "Number of correctly predicted labels: " << correct << endl;
 	output_file.close();
+
 	return (double) correct / test_labels.size();
 }
 
 // Public Functions
 /*
-Returns: - [double] the predicted label for the input data
+* Returns: - [double] the predicted label for the input data
 */
 double decisionTree::predict(vd& data)
 {
@@ -569,7 +607,9 @@ double decisionTree::predict(vd& data)
 }
 
 /*
-Returns: - [vd] the list of predicted labels for each data point in the dataset
+* Overloaded version of predict that can handle sets of data.
+*
+* Returns: - [vd] the list of predicted labels for each data point in the dataset
 */
 vd decisionTree::predict(vvd& dataset)
 {
@@ -595,7 +635,7 @@ double decisionTree::getStatsInfo(vd& test_labels, vd& test_predictions, wstring
 	wcout << L"----------------------------------------------------------------\n";
 	double accuracy = processStats(test_labels, test_predictions, filename);
 	wcout << L"NOTE: testing results recorded at " << filename << "\n";
-	wcout << L"Model Accuracy on Test Data: " << accuracy << endl;
+	wcout << L"\nModel Accuracy on Test Data: " << accuracy << endl;
 
 	return accuracy;
 }

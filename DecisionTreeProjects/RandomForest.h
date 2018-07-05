@@ -10,7 +10,7 @@ class randomForest
 	vector<decisionTree> forest;
 
 	vvd getBootstrapSample(vvd&, int);
-	void randomForest::printForestSample(int);
+	void printForestSample(int);
 	double processStats(vd&, vd&, wstring);
 
 public:
