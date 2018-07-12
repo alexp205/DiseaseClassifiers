@@ -8,6 +8,7 @@
 
 bool getBoolArg(char*);
 tuple<vvd, vvd> parseData(string, string);
+vd parseData(string);
 vd parseDataLine(string);
 
 #endif

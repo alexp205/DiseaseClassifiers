@@ -2,6 +2,7 @@
 
 vvd train_data;
 vvd test_data;
+vd test_labels;
 bool use_forest;
 bool is_discrete;
 bool is_classification;
@@ -11,22 +12,27 @@ int bag_size_default;
 /*
 * Args: 1. [string] the path to the training data csv file
 *       2. [string] the path to the testing data csv file
-*       3. [bool] determines whether or not the data is discrete or continuous
-*       4. [bool] determines whether or not the task is classification or regression
+*       3. [string] the path to the testing data labels csv file
+*       4. [bool] determines whether or not the data is discrete [T] or continuous [F]
+*       5. [bool] determines whether or not the task is classification [T] or regression [F]
 *                 (i.e. discrete, finite or continous labels)
-*	    5. [bool] determines whether or not to use a random forest
-*       6. [int] number of trees in random forest
-*       7. [int] bagging size of tree data in random forest
+*	    6. [bool] determines whether or not to use a random forest
+*       7. [int] number of trees in random forest
+*       8. [int] bagging size of tree data in random forest
+*
+* Sample Args:
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" true true false
 */
 int main(int argc, char* argv[])
 {
     wcout << L"Extracting training and testing data from files\n";
-    use_forest = getBoolArg(argv[5]);
-    is_discrete = getBoolArg(argv[3]);
-    is_classification = getBoolArg(argv[4]);
+    use_forest = getBoolArg(argv[6]);
+    is_discrete = getBoolArg(argv[4]);
+    is_classification = getBoolArg(argv[5]);
     auto datasets = parseData(string(argv[1]), string(argv[2]));
     train_data = get<0>(datasets);
     test_data = get<1>(datasets);
+    test_labels = parseData(string(argv[3]));
 
     wcout << L"Training Data Sample:\n[";
     for (size_t x = 0; x < train_data[0].size() - 1; x++) {
@@ -57,7 +63,7 @@ int main(int argc, char* argv[])
 	    }
 	    else if (argc == 7) {
 		    wcout << L"Random forest tree bag size not specified, using default value\n";
-		    forest_size = strtol(argv[6], NULL, 10);
+		    forest_size = strtol(argv[7], NULL, 10);
 		    int subset_size = 5;
 		    if (train_data.size() > 50) {
 			    subset_size = train_data.size() / 5;
@@ -65,11 +71,11 @@ int main(int argc, char* argv[])
 		    bag_size = subset_size;
 	    }
 	    else {
-		    forest_size = strtol(argv[6], NULL, 10);
+		    forest_size = strtol(argv[7], NULL, 10);
             if (forest_size < 500) {
                 wcout << L"WARNING: small forest size detected, consider using more than 500 trees\n";
             }
-		    bag_size = strtol(argv[7], NULL, 10);
+		    bag_size = strtol(argv[8], NULL, 10);
             if (bag_size < 10) {
                 wcout << L"WARNING: extremely small bag size detected, using default of 10 for better performance\n";
                 bag_size = 10;
@@ -81,10 +87,6 @@ int main(int argc, char* argv[])
 	    forest.print(10);
 
 	    vd predictions = forest.predict(test_data);
-	    vd test_labels;
-	    for (size_t x = 0; x < test_data.size(); x++) {
-		    test_labels.push_back(test_data[x][test_data[x].size() - 1]);
-	    }
 	    wstring filename = L"random_forest_output.txt";
 	    double accuracy = forest.getStatsInfo(test_labels, predictions, filename);
     }
@@ -94,10 +96,6 @@ int main(int argc, char* argv[])
 	    tree.print();
 
 	    vd predictions = tree.predict(test_data);
-	    vd test_labels;
-	    for (size_t x = 0; x < test_data.size(); x++) {
-		    test_labels.push_back(test_data[x][test_data[x].size() - 1]);
-	    }
 	    wstring filename = L"decision_tree_output.txt";
 	    double accuracy = tree.getStatsInfo(test_labels, predictions, filename);
     }
@@ -150,6 +148,24 @@ tuple<vvd, vvd> parseData(string train_data_csv, string test_data_csv)
 	}
 
 	return make_tuple(extracted_train_data, extracted_test_data);
+}
+
+vd parseData(string test_labels_csv)
+{
+    vd extracted_test_labels;
+    ifstream input_file;
+    string data_string;
+
+    input_file.open(test_labels_csv);
+    if (!input_file) {
+        wcerr << L"Error: Invalid path to testing data file" << endl;
+        exit(-1);
+    }
+    while (getline(input_file, data_string)) {
+        extracted_test_labels.push_back(atof(data_string.c_str()));
+    }
+
+    return extracted_test_labels;
 }
 
 vd parseDataLine(string data)

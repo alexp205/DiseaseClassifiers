@@ -503,10 +503,6 @@ double decisionTree::predict(vd& data, node current_node)
 		int child_idx;
 		int max_freq = -1;
 		for (size_t x = 0; x < current_node.children.size(); x++) {
-
-            // TODO: remove these comments
-            // NOTE: recently changed, should be correct but might not be
-
 			double val = current_node.children[x].split_val;
 			if (val == data_val) return predict(data, current_node.children[x]);
 			int freq = current_node.children[x].frequency;
@@ -530,6 +526,14 @@ void decisionTree::printTree(node node_ref, int depth)
 	if (node_ref.is_leaf) {
 		printSpacing(depth, true);
 		wcout << L"Split Variable: " << node_ref.split_var << "\n";
+        if (is_discrete) {
+            printSpacing(depth, false);
+            wcout << L"Split Value: " << node_ref.split_val << "\n";
+        }
+        else {
+            printSpacing(depth, false);
+            wcout << L"Threshold: " << node_ref.threshold << "\n";
+        }
 		printSpacing(depth, false);
 		wcout << L"Predicted Label: " << node_ref.label << endl;
 		return;
