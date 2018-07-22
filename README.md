@@ -51,6 +51,7 @@ A few notes on the chosen structure:
 ## USAGE:
 1. [string] the path to the training data csv file
 2. [string] the path to the testing data csv file
+3. [string] the path to the testing data labels csv file
 3. [bool] determines whether or not the data is discrete or continuous
 4. [bool] determines whether or not the task is classification or regression (i.e. discrete, finite or continous labels)
 5. [bool] determines whether or not to use a random forest

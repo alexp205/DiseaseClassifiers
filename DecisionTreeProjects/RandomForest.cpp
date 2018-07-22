@@ -2,15 +2,24 @@
 
 // Constructor
 /*
-* 
+*  Creates forest of decision trees using bootstrapped datasets
 */
 randomForest::randomForest(vvd& dataset, int forest_size, int bag_size, bool discrete, bool classification)
 {
+    int progress_cntr = 0;
+
 	for (int x = 0; x < forest_size; x++) {
 		vvd bootstrap_data = getBootstrapSample(dataset, bag_size);
 		decisionTree forest_tree(bootstrap_data, (int)sqrt(dataset.size()), discrete, classification, true);
 		forest.push_back(forest_tree);
+
+        if (x == (progress_cntr * (forest_size / 20))) {
+            wcout << L"Progress --- " << (progress_cntr * 5) << "%\n";
+            progress_cntr++;
+        }
 	}
+
+    wcout << L"Progress --- 100%\n";
 }
 
 // Private (Internal) Functions
@@ -18,6 +27,7 @@ vvd randomForest::getBootstrapSample(vvd& input_data, int size)
 {
 	vvd bootstrap_data;
 
+    // redundant, but safety first! :)
 	if (input_data.size() < (size_t) size) {
 		bootstrap_data = input_data;
 	} else {
@@ -86,7 +96,10 @@ double randomForest::predict(vd& data)
 	// NOTE: ties are broken "randomly" (i.e. first visited is chosen)
 	for (map<double,int>::iterator itr = predictions.begin(); itr != predictions.end(); ++itr) {
 		int label_count = itr->second;
-		if (label_count > max_count) label = itr->first;
+        if (label_count > max_count) {
+            label = itr->first;
+            max_count = label_count;
+        }
 	}
 
 	return label;
@@ -113,7 +126,7 @@ void randomForest::print(int sample_size)
 	wcout << L"Taking Sample of Size " << sample_size << " from the Forest:\n";
 	wcout << L"----------------------------------------------------------------" << endl;
 	int step_size = (int) floor(forest.size() / (double) sample_size);
-	for (int x = 0; x < sample_size; x += step_size) {
+	for (int x = 0; x < forest.size(); x += step_size) {
 		wcout << L"Random Forest: Tree " << x << "\n";
 		printForestSample(x);
 		wcout << endl;

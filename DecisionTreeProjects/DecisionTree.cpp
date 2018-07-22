@@ -34,7 +34,7 @@ decisionTree::decisionTree(vvd& train_dataset, int data_cutoff, bool discrete, b
 	is_classification = classification;
 	is_in_forest = forest;
 	min_data_size = data_cutoff;
-	data_info = getDatasetInfo(train_dataset);
+    if (is_discrete) data_info = getDatasetInfo(train_dataset);
 	labels = getLabelInfo(train_dataset);
 
 	vector<int> original_indices;
@@ -60,16 +60,19 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		exit(-1);
 	}
 	
-	vvd bkp_data_info = data_info;
+    vvd bkp_data_info;
+    if (is_discrete) {
+        bkp_data_info = data_info;
+        data_info = getDatasetInfo(input_data);
+    }
 	map<double,int> bkp_labels = labels;
-	data_info = getDatasetInfo(input_data);
 	labels = getLabelInfo(input_data);
 	// check if the tree is at a leaf
 	auto is_leaf = checkLeaf(input_data);
 	if (get<0>(is_leaf)) {
 		node_ref.is_leaf = true;
 		node_ref.label = get<1>(is_leaf);
-		data_info = bkp_data_info;
+		if (is_discrete) data_info = bkp_data_info;
 		labels = bkp_labels;
 		return node_ref;
 	}
@@ -83,40 +86,41 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 	// also, if the tree is part of a forest, split on a random subset of 
 	// the data
 	vvd split_data;
-	vvd ref_data_info = data_info;
-	map<double,int> ref_labels = labels;
+    vvd ref_data_info;
+    map<double, int> ref_labels;
 	if (is_in_forest) {
 		int num_data = (int) ceil(sqrt(input_data.size()));
 		split_data = getForestNodeData(input_data, num_data);
 		// the following is necessary because of the references to data_info and 
 		// labels in bestSplitVar (and all reliant functions), this system can 
 		// almost certainly be improved and eventually maybe possibly will
-		data_info = getDatasetInfo(split_data);
+        if (is_discrete) {
+            ref_data_info = data_info;
+            data_info = getDatasetInfo(split_data);
+        }
+        ref_labels = labels;
 		labels = getLabelInfo(split_data);
 	} else {
 		if (input_data.size() < (size_t) min_data_size) {
 			node_ref.is_leaf = true;
 			node_ref.label = getCutoffLeafLabel();
-			data_info = bkp_data_info;
+            if (is_discrete) data_info = bkp_data_info;
 			labels = bkp_labels;
 			return node_ref;
 		}
 		split_data = input_data;
 	}
-
-    // TODO: debug this w/ forests, the returned split_var idx WILL NOT correspond to the correct input_data idx
     
     auto split_info = bestSplitVar(split_data);
     int split_var = get<0>(split_info);
+    if (is_in_forest) {
+        if (is_discrete) data_info = ref_data_info;
+        labels = ref_labels;
+    }
 	if (is_discrete) {
 		if (split_var == -1) {
 			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
 			exit(-1);
-		}
-        // restore data_info and labels if in forest
-		if (is_in_forest) {
-			data_info = ref_data_info;
-			labels = ref_labels;
 		}
 		node_ref.split_var = indices[split_var];
 		for (size_t x = 0; x < data_info[split_var].size(); x++) {
@@ -143,11 +147,6 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
             wcout << L"ERROR: no split threshold detected in continuous mode, please check for errors" << endl;
             exit(-1);
         }
-        // restore data_info and labels if in forest
-		if (is_in_forest) {
-			data_info = ref_data_info;
-			labels = ref_labels;
-		}
 		node_ref.split_var = indices[split_var];
 		node_ref.threshold = split_threshold;
 		node left_child;
@@ -161,7 +160,6 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		right_child.frequency = data_subsets[1].size();
 		node_ref.children.push_back(buildTree(data_subsets[0], indices, left_child));
 		node_ref.children.push_back(buildTree(data_subsets[1], indices, right_child));
-		data_info = bkp_data_info;
 		labels = bkp_labels;
 		return node_ref;
 	}

@@ -18,10 +18,12 @@ int bag_size_default;
 *                 (i.e. discrete, finite or continous labels)
 *	    6. [bool] determines whether or not to use a random forest
 *       7. [int] number of trees in random forest
-*       8. [int] bagging size of tree data in random forest
+*       8. [int] <optional> amount of bootstrap data per forest tree
 *
 * Sample Args:
-*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" true true false
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true false
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true true
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true true 200
 */
 int main(int argc, char* argv[])
 {
@@ -47,28 +49,22 @@ int main(int argc, char* argv[])
     wcout << test_data[0][test_data[0].size() - 1] << "]\n";
 
     if (use_forest) {
-
-        // TODO: change this section to accommodate larger min subset size (~10 or 20)
+        if (train_data.size() < 500) {
+            wcout << L"WARNING: amount of input data is smaller than the minimum recommended (500), please consider providing at least that amount of data before attempting to run random forests\n";
+        }
 
 	    int forest_size;
-	    int bag_size;
-	    if (argc < 7) {
-		    wcout << L"Random forest size and tree bag size not specified, using default values\n";
+	    int bag_size = train_data.size();
+	    if (argc < 8) {
+		    wcout << L"Random forest size and bootstrap bag size not specified, using default values\n";
 		    forest_size = forest_size_default;
-		    int subset_size = 10;
-		    if (train_data.size() > 50) {
-			    subset_size = train_data.size() / 5;
-		    }
-		    bag_size = subset_size;
 	    }
-	    else if (argc == 7) {
-		    wcout << L"Random forest tree bag size not specified, using default value\n";
+	    else if (argc == 8) {
+		    wcout << L"Random forest bootstrap bag size not specified, using default value\n";
 		    forest_size = strtol(argv[7], NULL, 10);
-		    int subset_size = 5;
-		    if (train_data.size() > 50) {
-			    subset_size = train_data.size() / 5;
-		    }
-		    bag_size = subset_size;
+            if (forest_size < 500) {
+                wcout << L"WARNING: small forest size detected, consider using more than 500 trees\n";
+            }
 	    }
 	    else {
 		    forest_size = strtol(argv[7], NULL, 10);
@@ -76,15 +72,16 @@ int main(int argc, char* argv[])
                 wcout << L"WARNING: small forest size detected, consider using more than 500 trees\n";
             }
 		    bag_size = strtol(argv[8], NULL, 10);
-            if (bag_size < 10) {
-                wcout << L"WARNING: extremely small bag size detected, using default of 10 for better performance\n";
-                bag_size = 10;
+            if (bag_size > train_data.size()) {
+                wcout << L"Specified bootstrap bag size is larger than size of input data\n";
+                exit(-1);
             }
+            wcout << L"WARNING: small bootstrap bag sizes increase performance BUT can drastically worsen prediction accuracy\n";
 	    }
 
 	    wcout << L"Building random forest...\n";
 	    randomForest forest(train_data, forest_size, bag_size, is_discrete, is_classification);
-	    forest.print(10);
+	    forest.print(3);
 
 	    vd predictions = forest.predict(test_data);
 	    wstring filename = L"random_forest_output.txt";
