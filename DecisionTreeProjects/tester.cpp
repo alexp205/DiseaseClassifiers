@@ -21,9 +21,14 @@ int bag_size_default;
 *       8. [int] <optional> amount of bootstrap data per forest tree
 *
 * Sample Args:
+*  - Discrete
 *   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true false
 *   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true true
 *   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-discrete_test_labels.csv" true true true 200
+*
+*  - Continuous
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_test_labels.csv" false true false
+*   "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_train_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_test_data.csv" "C:\Users\ap\Documents\Visual Studio 2017\Projects\DecisionTreeProjects\DecisionTreeProjects\data\TEST-continuous_test_labels.csv" false true true 200
 */
 int main(int argc, char* argv[])
 {
