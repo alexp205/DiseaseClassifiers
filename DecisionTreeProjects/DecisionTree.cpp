@@ -76,6 +76,13 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		labels = bkp_labels;
 		return node_ref;
 	}
+    if (input_data.size() < (size_t)min_data_size) {
+        node_ref.is_leaf = true;
+        node_ref.label = getCutoffLeafLabel();
+        if (is_discrete) data_info = bkp_data_info;
+        labels = bkp_labels;
+        return node_ref;
+    }
 
 	// choose how to split based on if the tree is part of a forest 
     // OR if the data is discrete or continuous
@@ -101,13 +108,6 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
         ref_labels = labels;
 		labels = getLabelInfo(split_data);
 	} else {
-		if (input_data.size() < (size_t) min_data_size) {
-			node_ref.is_leaf = true;
-			node_ref.label = getCutoffLeafLabel();
-            if (is_discrete) data_info = bkp_data_info;
-			labels = bkp_labels;
-			return node_ref;
-		}
 		split_data = input_data;
 	}
     
@@ -139,13 +139,21 @@ node decisionTree::buildTree(vvd& input_data, vector<int> indices, node node_ref
 		return node_ref;
 	} else {
 		double split_threshold = get<1>(split_info);
-		if (split_var == -1) {
-			wcout << L"ERROR: no split variable detected, please check for errors" << endl;
-			exit(-1);
-		}
-        if (split_threshold == -1) {
-            wcout << L"ERROR: no split threshold detected in continuous mode, please check for errors" << endl;
-            exit(-1);
+        // check for and handle rare exact-same data case
+        if ((-1 == split_var) && (-1 == split_threshold)) {
+            node_ref.is_leaf = true;
+            node_ref.label = input_data[0][input_data[0].size() - 1];
+            labels = bkp_labels;
+            return node_ref;
+        } else {
+            if (split_var == -1) {
+                wcout << L"ERROR: no split variable detected, please check for errors" << endl;
+                exit(-1);
+            }
+            if (split_threshold == -1) {
+                wcout << L"ERROR: no split threshold detected in continuous mode, please check for errors" << endl;
+                exit(-1);
+            }
         }
 		node_ref.split_var = indices[split_var];
 		node_ref.threshold = split_threshold;
@@ -388,7 +396,7 @@ vd decisionTree::getThresholds(vvd& input_data, int idx)
 
     vd candidates;
     for (size_t i = 0; i < input_data.size(); i++) {
-        candidates.push_back(input_data[i][input_data[i].size() - 1]);
+        candidates.push_back(input_data[i][idx]);
     }
     sort(candidates.begin(), candidates.end());
 
@@ -396,14 +404,10 @@ vd decisionTree::getThresholds(vvd& input_data, int idx)
     for (size_t x = 1; x < candidates.size(); x++) {
 		double next_candidate = candidates[x];
 		if (next_candidate != split) {
-			double threshold = (input_data[x][idx] + input_data[x - 1][idx]) / (double) 2;
+			double threshold = (next_candidate + split) / (double) 2;
 			thresholds.push_back(threshold);
 			split = next_candidate;
 		}
-	}
-
-	if (thresholds.size() == 0) {
-		thresholds.push_back((input_data[1][idx] + input_data[0][idx]) / (double) 2);
 	}
 
 	return thresholds;

@@ -7,6 +7,7 @@
 randomForest::randomForest(vvd& dataset, int forest_size, int bag_size, bool discrete, bool classification)
 {
     int progress_cntr = 0;
+    is_classification = classification;
 
 	for (int x = 0; x < forest_size; x++) {
 		vvd bootstrap_data = getBootstrapSample(dataset, bag_size);
@@ -82,25 +83,35 @@ double randomForest::predict(vd& data)
 {
 	double label;
 	map<double,int> predictions;
+    double total_prediction = 0;
 	
 	for (size_t x = 0; x < forest.size(); x++) {
 		double prediction = forest[x].predict(data);
-		if (predictions.count(prediction) == 0) {
-			predictions[prediction] = 1;
-		} else {
-			predictions[prediction]++;
-		}
-	}
-
-	int max_count = -1;
-	// NOTE: ties are broken "randomly" (i.e. first visited is chosen)
-	for (map<double,int>::iterator itr = predictions.begin(); itr != predictions.end(); ++itr) {
-		int label_count = itr->second;
-        if (label_count > max_count) {
-            label = itr->first;
-            max_count = label_count;
+        if (is_classification) {
+            if (predictions.count(prediction) == 0) {
+                predictions[prediction] = 1;
+            }
+            else {
+                predictions[prediction]++;
+            }
+        } else {
+            total_prediction += prediction;
         }
 	}
+
+    if (is_classification) {
+        int max_count = -1;
+        // NOTE: ties are broken "randomly" (i.e. first visited is chosen)
+        for (map<double, int>::iterator itr = predictions.begin(); itr != predictions.end(); ++itr) {
+            int label_count = itr->second;
+            if (label_count > max_count) {
+                label = itr->first;
+                max_count = label_count;
+            }
+        }
+    } else {
+        label = total_prediction / forest.size();
+    }
 
 	return label;
 }

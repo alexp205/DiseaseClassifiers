@@ -8,6 +8,7 @@
 class randomForest
 {
 	vector<decisionTree> forest;
+    bool is_classification;
 
 	vvd getBootstrapSample(vvd&, int);
 	void printForestSample(int);
